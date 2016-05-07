@@ -9,8 +9,8 @@
   </parent>
   <groupId>com.javatechnics</groupId>
   <artifactId>libusb</artifactId>
-  <version>1.0-SNAPSHOT</version>
-  <name>libusb2</name>
+  <version>1.0-0</version>
+  <name>libusb</name>
   <url>http://maven.apache.org</url>
   <dependencies>
     <dependency>
@@ -20,19 +20,124 @@
       <scope>test</scope>
     </dependency>
   </dependencies>
-  
+  <properties>
+      <build.dir>${project.basedir}/build</build.dir>
+      <install.dir>${build.dir}/install</install.dir>
+  </properties>
   <build>
       <plugins>
+          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-antrun-plugin</artifactId>
+              <version>1.8</version>
+              <executions>
+                  <execution>
+                      <id>createBuildDirectory</id>
+                      <phase>initialize</phase>
+                      <goals>
+                          <goal>run</goal>
+                      </goals>
+                      <configuration>
+                          <tasks>
+                              <delete dir="${project.basedir}/build" />
+                              <mkdir dir="${project.basedir}/build" />
+                          </tasks>
+                      </configuration>
+                  </execution>
+              </executions>
+          </plugin>
           <plugin>
               <groupId>org.codehaus.mojo</groupId>
               <artifactId>exec-maven-plugin</artifactId>
               <version>1.4.0</version>
-              <configuration>
-                  <!-- 
-                    ** TODO: Execute checking for 
-                  -->
-              </configuration>
+              <executions>
+                  <execution>
+                      <id>autoReconf</id>
+                      <phase>generate-sources</phase>
+                      <goals>
+                          <goal>exec</goal>
+                      </goals>
+                      <configuration>
+                          <workingDirectory>${project.basedir}</workingDirectory>
+                          <executable>autoreconf</executable>
+                          <arguments>
+                              <argument>-i</argument>
+                          </arguments>
+                      </configuration>
+                  </execution>
+                  <execution>
+                      <id>configure</id>
+                      <phase>generate-sources</phase>
+                      <goals>
+                          <goal>exec</goal>
+                      </goals>
+                      <configuration>
+                          <workingDirectory>${build.dir}</workingDirectory>
+                          <executable>../configure</executable>
+                          <arguments>
+                              <argument>--prefix=${install.dir}</argument>
+                          </arguments>
+                      </configuration>
+                  </execution>
+                  <execution>
+                      <id>compile</id>
+                      <phase>compile</phase>
+                      <goals>
+                          <goal>exec</goal>
+                      </goals>
+                      <configuration>
+                          <workingDirectory>${build.dir}</workingDirectory>
+                          <executable>make</executable>
+                          <arguments>
+                              <argument>-j8</argument>
+                          </arguments>
+                      </configuration>
+                  </execution>
+                  <execution>
+                      <id>make-install</id>
+                      <phase>package</phase>
+                      <goals>
+                          <goal>exec</goal>
+                      </goals>
+                      <configuration>
+                          <workingDirectory>${project.basedir}/build</workingDirectory>
+                          <executable>make</executable>
+                          <arguments>
+                              <argument>install</argument>
+                          </arguments>
+                      </configuration>
+                  </execution>
+              </executions>
           </plugin>
+          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-jar-plugin</artifactId>
+              <version>2.6</version>
+              <executions>
+                  <execution>
+                      <id>package-native</id>
+                      <phase>package</phase>
+                      <goals>
+                          <goal>jar</goal>
+                      </goals>
+                      <configuration>
+                        <classesDirectory>${install.dir}</classesDirectory>
+                        <outputDirectory>${build.dir}/target</outputDirectory>
+                        <includes>
+                            <include>**/**</include>
+                        </includes>
+                    </configuration>
+                  </execution>
+              </executions>
+          </plugin>
+<!--          <plugin>
+              <groupId>org.apache.maven.plugins</groupId>
+              <artifactId>maven-install-plugin</artifactId>
+              <version>2.5.2</version>
+              <configuration>
+                  <skip>true</skip>
+              </configuration>
+          </plugin>-->
       </plugins>
   </build>
 </project>
